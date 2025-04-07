@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from urllib.parse import urlparse
 import codecs
+import logging
+from scrapy.exceptions import DropItem
 
 
 class WebsiteCrawlerPipeline:
@@ -20,6 +22,12 @@ class WebsiteCrawlerPipeline:
             os.makedirs(self.html_dir)
         if not os.path.exists(self.json_dir):
             os.makedirs(self.json_dir)
+            
+        # Set up logger
+        self.logger = logging.getLogger(__name__)
+        
+        # Maximum content size to process (10MB)
+        self.max_content_size = 10 * 1024 * 1024
 
     def get_filename_from_url(self, url):
         """Generate a filename from a URL"""
@@ -32,29 +40,46 @@ class WebsiteCrawlerPipeline:
         return f"{domain}{path}_{timestamp}"
 
     def process_item(self, item, spider):
-        # Generate a base filename from the URL
-        base_filename = self.get_filename_from_url(item['url'])
-        
-        # Save the clean HTML content to a file
-        html_filename = f"{base_filename}.html"
-        html_filepath = os.path.join(self.html_dir, html_filename)
-        
-        with codecs.open(html_filepath, 'w', 'utf-8') as f:
-            f.write(item['content'])
-        
-        # Prepare data for JSON
-        json_data = dict(item)
-        # We don't need to duplicate the full HTML in JSON
-        json_data['content'] = "See HTML file for full content"
-        
-        # Save JSON data
-        json_filename = f"{base_filename}.json"
-        json_filepath = os.path.join(self.json_dir, json_filename)
-        
-        with codecs.open(json_filepath, 'w', 'utf-8') as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
-        
-        spider.logger.info(f"Saved HTML to {html_filepath}")
-        spider.logger.info(f"Saved JSON to {json_filepath}")
-
-        return item
+        try:
+            # Check content size to prevent memory issues
+            content_size = len(item['content']) if 'content' in item else 0
+            if content_size > self.max_content_size:
+                message = f"Content too large ({content_size} bytes) for {item['url']}, truncating"
+                self.logger.warning(message)
+                spider.logger.warning(message)
+                # Truncate content to max size
+                item['content'] = item['content'][:self.max_content_size] + "\n<!-- Content truncated due to size -->"
+            
+            # Generate a base filename from the URL
+            base_filename = self.get_filename_from_url(item['url'])
+            
+            # Save the clean HTML content to a file - use buffered writing
+            html_filename = f"{base_filename}.html"
+            html_filepath = os.path.join(self.html_dir, html_filename)
+            
+            with open(html_filepath, 'w', encoding='utf-8', buffering=1024*8) as f:
+                f.write(item['content'])
+            
+            # Prepare data for JSON - don't duplicate the full HTML
+            json_data = dict(item)
+            # We don't need to duplicate the full HTML in JSON
+            json_data['content'] = "See HTML file for full content"
+            
+            # Save JSON data - use buffered writing
+            json_filename = f"{base_filename}.json"
+            json_filepath = os.path.join(self.json_dir, json_filename)
+            
+            with open(json_filepath, 'w', encoding='utf-8', buffering=1024*8) as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=2)
+            
+            spider.logger.info(f"Saved HTML to {html_filepath}")
+            spider.logger.info(f"Saved JSON to {json_filepath}")
+            
+            return item
+            
+        except Exception as e:
+            # Log error and drop item on failure
+            error_msg = f"Error processing item from {item.get('url', 'unknown URL')}: {str(e)}"
+            self.logger.error(error_msg)
+            spider.logger.error(error_msg)
+            raise DropItem(error_msg)

@@ -47,9 +47,9 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
-#EXTENSIONS = {
-#    "scrapy.extensions.telnet.TelnetConsole": None,
-#}
+EXTENSIONS = {
+    'scrapy.extensions.memusage.MemoryUsage': 500,
+}
 
 # Configure item pipelines
 ITEM_PIPELINES = {
@@ -81,3 +81,18 @@ ITEM_PIPELINES = {
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+# Configure maximum request and response size
+DOWNLOAD_MAXSIZE = 10485760  # 10MB max download size
+DOWNLOAD_WARNSIZE = 5242880  # 5MB download warning size
+
+# Enable memory usage extension to monitor memory
+EXTENSIONS = {
+    'scrapy.extensions.memusage.MemoryUsage': 500,
+}
+
+# Memory usage limits
+MEMUSAGE_ENABLED = True
+MEMUSAGE_WARNING_MB = 256
+MEMUSAGE_LIMIT_MB = 512
+MEMUSAGE_NOTIFY_MAIL = ['luka@hapttic.com']  
