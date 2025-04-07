@@ -9,6 +9,19 @@ A Scrapy-based web crawler that crawls websites deeply, saves clean HTML content
 - Follows internal links automatically for deep crawling
 - Collects external links
 - Organizes output in separate HTML and JSON files
+- **Security-enhanced**: Protected against memory consumption vulnerabilities
+
+## Security Enhancements
+
+This crawler includes protections against CVE-2018-13117 (Scrapy memory consumption vulnerability):
+
+- **Response size limits**: Download size is capped at 10MB
+- **Buffered file writing**: Uses buffered IO to handle large files efficiently
+- **Streaming downloads**: Uses HTTP streaming for large responses
+- **Memory monitoring**: Includes memory usage monitoring and limits
+- **Content truncation**: Automatically truncates oversized content
+- **Binary file filtering**: Skips binary files (images, videos, documents)
+- **Error handling**: Robust error handling prevents crashes from large/malformed responses
 
 ## Installation
 
@@ -54,12 +67,14 @@ The crawler stores its output in the `output` directory:
 
 ### Configuration
 
-You can modify crawler settings in `website_crawler/spiders/deep_crawler.py`:
+You can modify crawler settings in `website_crawler/website_crawler/settings.py`:
 
 - `DEPTH_LIMIT`: How deep the crawler will go (default: 3)
 - `CONCURRENT_REQUESTS`: Number of concurrent requests (default: 16)
 - `DOWNLOAD_DELAY`: Delay between requests in seconds (default: 1)
 - `ROBOTSTXT_OBEY`: Whether to respect robots.txt (default: True)
+- `DOWNLOAD_MAXSIZE`: Maximum download size in bytes (default: 10MB)
+- `MEMUSAGE_LIMIT_MB`: Memory usage limit in MB (default: 512MB)
 
 ## License
 
