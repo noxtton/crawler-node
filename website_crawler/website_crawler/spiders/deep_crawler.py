@@ -4,7 +4,7 @@ from urllib.parse import urljoin, urlparse
 from datetime import datetime
 import re
 import lxml.html
-import lxml.html.clean
+from lxml_html_clean import Cleaner
 
 
 class DeepCrawlerSpider(scrapy.Spider):
@@ -25,8 +25,8 @@ class DeepCrawlerSpider(scrapy.Spider):
             # Extract domains from URLs
             self.allowed_domains = [urlparse(url).netloc for url in self.start_urls]
         
-        # Initialize HTML cleaner
-        self.cleaner = lxml.html.clean.Cleaner(
+        # Initialize HTML cleaner using the new package
+        self.cleaner = Cleaner(
             style=True,                # Remove CSS styles
             scripts=True,              # Remove JavaScript
             javascript=True,           # Remove JavaScript
